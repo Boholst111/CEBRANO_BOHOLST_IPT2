@@ -1,0 +1,217 @@
+import mysql from 'mysql2/promise';
+import fs from 'fs';
+import path from 'path';
+import bcrypt from 'bcryptjs';
+
+// Database configuration
+const dbConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'sfms_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+};
+
+// Create connection pool
+const pool = mysql.createPool(dbConfig);
+
+// Initialize database and tables
+export const initializeDatabase = async () => {
+    try {
+        console.log('🔄 Connecting to MySQL server...');
+        
+        // Create connection without specifying database first
+        const tempConfig = {
+            host: dbConfig.host,
+            port: dbConfig.port,
+            user: dbConfig.user,
+            password: dbConfig.password,
+            waitForConnections: dbConfig.waitForConnections,
+            connectionLimit: dbConfig.connectionLimit,
+            queueLimit: dbConfig.queueLimit
+        };
+        const tempPool = mysql.createPool(tempConfig);
+        
+        const connection = await tempPool.getConnection();
+        console.log('✅ Connected to MySQL server');
+        
+        // Create database if it doesn't exist
+        console.log(`🔄 Creating database '${dbConfig.database}' if it doesn't exist...`);
+        await connection.execute(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
+        console.log('✅ Database created/verified');
+        
+        connection.release();
+        await tempPool.end();
+        
+        // Now connect to the specific database
+        console.log('🔄 Connecting to application database...');
+        const appConnection = await pool.getConnection();
+        
+        // Create tables
+        await createTables(appConnection);
+        
+        // Insert default data
+        await insertDefaultData(appConnection);
+        
+        appConnection.release();
+        console.log('✅ Database initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        throw error;
+    }
+};
+
+const createTables = async (connection: mysql.PoolConnection) => {
+    // Users table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            email VARCHAR(100) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            role VARCHAR(20) DEFAULT 'admin',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Students table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS students (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            student_id VARCHAR(20) UNIQUE NOT NULL,
+            first_name VARCHAR(50) NOT NULL,
+            last_name VARCHAR(50) NOT NULL,
+            email VARCHAR(100) UNIQUE NOT NULL,
+            phone VARCHAR(20),
+            date_of_birth DATE,
+            gender VARCHAR(10),
+            address TEXT,
+            enrollment_date DATE NOT NULL,
+            program VARCHAR(100),
+            year_level INT,
+            status VARCHAR(20) DEFAULT 'active',
+            gpa DECIMAL(3,2),
+            emergency_contact_name VARCHAR(100),
+            emergency_contact_phone VARCHAR(20),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Faculty table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS faculty (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            employee_id VARCHAR(20) UNIQUE NOT NULL,
+            first_name VARCHAR(50) NOT NULL,
+            last_name VARCHAR(50) NOT NULL,
+            email VARCHAR(100) UNIQUE NOT NULL,
+            phone VARCHAR(20),
+            date_of_birth DATE,
+            gender VARCHAR(10),
+            address TEXT,
+            hire_date DATE NOT NULL,
+            department VARCHAR(100),
+            position VARCHAR(100),
+            salary DECIMAL(10,2),
+            status VARCHAR(20) DEFAULT 'active',
+            qualifications TEXT,
+            specialization VARCHAR(200),
+            office_location VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Courses table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS courses (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            course_code VARCHAR(20) UNIQUE NOT NULL,
+            course_name VARCHAR(200) NOT NULL,
+            description TEXT,
+            credits INT,
+            department VARCHAR(100),
+            faculty_id INT,
+            semester VARCHAR(20),
+            academic_year VARCHAR(10),
+            status VARCHAR(20) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (faculty_id) REFERENCES faculty(id)
+        )
+    `);
+
+    // Enrollments table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS enrollments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            student_id INT NOT NULL,
+            course_id INT NOT NULL,
+            enrollment_date DATE NOT NULL,
+            grade VARCHAR(5),
+            status VARCHAR(20) DEFAULT 'enrolled',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES students(id),
+            FOREIGN KEY (course_id) REFERENCES courses(id),
+            UNIQUE KEY unique_enrollment (student_id, course_id)
+        )
+    `);
+
+    console.log('✅ Tables created successfully');
+};
+
+const insertDefaultData = async (connection: mysql.PoolConnection) => {
+    try {
+        // Check if admin user exists
+        const [adminRows] = await connection.execute(
+            'SELECT id FROM users WHERE username = ?',
+            ['admin']
+        );
+
+        if ((adminRows as any[]).length === 0) {
+            // Create admin user
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            await connection.execute(
+                'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+                ['admin', 'admin@sfms.com', hashedPassword, 'admin']
+            );
+            console.log('✅ Default admin user created');
+        }
+
+        // Insert sample students
+        const [studentRows] = await connection.execute('SELECT id FROM students LIMIT 1');
+        if ((studentRows as any[]).length === 0) {
+            await connection.execute(`
+                INSERT INTO students (student_id, first_name, last_name, email, phone, date_of_birth, gender, address, enrollment_date, program, year_level, gpa) VALUES
+                ('STU001', 'John', 'Doe', 'john.doe@student.edu', '123-456-7890', '2000-05-15', 'Male', '123 Main St, City, State', '2023-08-15', 'Computer Science', 2, 3.75),
+                ('STU002', 'Jane', 'Smith', 'jane.smith@student.edu', '123-456-7891', '2001-03-22', 'Female', '456 Oak Ave, City, State', '2023-08-15', 'Information Technology', 2, 3.85),
+                ('STU003', 'Mike', 'Johnson', 'mike.johnson@student.edu', '123-456-7892', '1999-11-08', 'Male', '789 Pine St, City, State', '2022-08-15', 'Computer Science', 3, 3.60)
+            `);
+            console.log('✅ Sample students inserted');
+        }
+
+        // Insert sample faculty
+        const [facultyRows] = await connection.execute('SELECT id FROM faculty LIMIT 1');
+        if ((facultyRows as any[]).length === 0) {
+            await connection.execute(`
+                INSERT INTO faculty (employee_id, first_name, last_name, email, phone, date_of_birth, gender, address, hire_date, department, position, salary, qualifications, specialization, office_location) VALUES
+                ('FAC001', 'Dr. Sarah', 'Wilson', 'sarah.wilson@university.edu', '555-123-4567', '1975-08-20', 'Female', '321 University Ave, City, State', '2015-08-15', 'Computer Science', 'Professor', 85000.00, 'PhD in Computer Science', 'Artificial Intelligence, Machine Learning', 'CS Building, Room 301'),
+                ('FAC002', 'Prof. David', 'Brown', 'david.brown@university.edu', '555-123-4568', '1970-12-10', 'Male', '654 Faculty Dr, City, State', '2010-08-15', 'Information Technology', 'Associate Professor', 75000.00, 'PhD in Information Systems', 'Database Systems, Web Development', 'IT Building, Room 205'),
+                ('FAC003', 'Dr. Lisa', 'Garcia', 'lisa.garcia@university.edu', '555-123-4569', '1980-04-03', 'Female', '987 Academic Ln, City, State', '2018-08-15', 'Computer Science', 'Assistant Professor', 65000.00, 'PhD in Software Engineering', 'Software Architecture, Mobile Development', 'CS Building, Room 402')
+            `);
+            console.log('✅ Sample faculty inserted');
+        }
+
+    } catch (error) {
+        console.error('❌ Error inserting default data:', error);
+    }
+};
+
+export default pool;
