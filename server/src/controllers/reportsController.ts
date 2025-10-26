@@ -332,11 +332,18 @@ export const getStudentReport = async (req: Request, res: Response) => {
         // Get filtered students data
         const result = await StudentModel.findAll(1, 1000, undefined, departmentId, courseId);
         
+        console.log('ReportsController - Students from model:', {
+            count: result.students.length,
+            firstStudent: result.students[0],
+            fields: result.students[0] ? Object.keys(result.students[0]) : [],
+            sample: result.students.slice(0, 2)
+        });
+        
         // Filter by academic year if provided
         let students = result.students;
         if (academicYear) {
             students = students.filter(student => 
-                student.academic_year && student.academic_year.includes(academicYear)
+                student.academic_year_name && student.academic_year_name.includes(academicYear)
             );
         }
 
@@ -362,20 +369,50 @@ export const getStudentReport = async (req: Request, res: Response) => {
             stats.byDepartment[deptName] = (stats.byDepartment[deptName] || 0) + 1;
             
             // By academic year
-            const year = student.academic_year || 'Unknown';
+            const year = student.academic_year_name || 'Unknown';
             stats.byAcademicYear[year] = (stats.byAcademicYear[year] || 0) + 1;
         });
         
+        console.log('DEBUG - Sample students for statistics:', {
+            sample1: { 
+                id: students[0]?.id, 
+                course_code: students[0]?.course_code,
+                department_name: students[0]?.department_name,
+                academic_year: students[0]?.academic_year
+            },
+            sample2: { 
+                id: students[1]?.id, 
+                course_code: students[1]?.course_code,
+                department_name: students[1]?.department_name,
+                academic_year: students[1]?.academic_year
+            }
+        });
+        
         // Convert objects to arrays for frontend
+        const byCourseArray = Object.entries(stats.byCourse).map(([course, count]) => ({ course, count }));
+        const byDepartmentArray = Object.entries(stats.byDepartment).map(([department, count]) => ({ department, count }));
+        const byAcademicYearArray = Object.entries(stats.byAcademicYear).map(([year, count]) => ({ year, count }));
+        
+        console.log('Statistics summary:', {
+            total: stats.total,
+            coursesCount: byCourseArray.length,
+            departmentsCount: byDepartmentArray.length,
+            yearsCount: byAcademicYearArray.length,
+            courses: byCourseArray,
+            departments: byDepartmentArray,
+            years: byAcademicYearArray
+        });
+        
         const report: any = {
             success: true,
+            version: '2.0', // Add version to confirm new code is running
             data: {
                 students: students.slice(0, 10), // First 10 for preview
                 statistics: {
                     total: stats.total,
-                    byCourse: Object.entries(stats.byCourse).map(([course, count]) => ({ course, count })),
-                    byDepartment: Object.entries(stats.byDepartment).map(([department, count]) => ({ department, count })),
-                    byAcademicYear: Object.entries(stats.byAcademicYear).map(([year, count]) => ({ year, count }))
+                    byCourse: byCourseArray,
+                    byDepartment: byDepartmentArray,
+                    byAcademicYear: byAcademicYearArray
                 },
                 filters: {
                     course_id: courseId,
@@ -499,14 +536,26 @@ export const getFacultyReport = async (req: Request, res: Response) => {
         stats.averageSalary = salaryCount > 0 ? stats.totalSalary / salaryCount : 0;
         
         // Convert objects to arrays for frontend
+        const byDepartmentArray = Object.entries(stats.byDepartment).map(([department, count]) => ({ department, count }));
+        const byEmploymentTypeArray = Object.entries(stats.byEmploymentType).map(([type, count]) => ({ type, count }));
+        
+        console.log('Faculty Statistics summary:', {
+            total: stats.total,
+            departmentsCount: byDepartmentArray.length,
+            employmentTypesCount: byEmploymentTypeArray.length,
+            averageSalary: stats.averageSalary,
+            departments: byDepartmentArray,
+            employmentTypes: byEmploymentTypeArray
+        });
+        
         const report: any = {
             success: true,
             data: {
                 faculty: faculty.slice(0, 10), // First 10 for preview
                 statistics: {
                     total: stats.total,
-                    byDepartment: Object.entries(stats.byDepartment).map(([department, count]) => ({ department, count })),
-                    byEmploymentType: Object.entries(stats.byEmploymentType).map(([type, count]) => ({ type, count })),
+                    byDepartment: byDepartmentArray,
+                    byEmploymentType: byEmploymentTypeArray,
                     byPosition: Object.entries(stats.byPosition).map(([position, count]) => ({ position, count })),
                     averageSalary: Math.round(stats.averageSalary)
                 },

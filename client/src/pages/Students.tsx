@@ -31,24 +31,8 @@ const Students: React.FC = () => {
     address: ''
   });
   const [departments, setDepartments] = useState<any[]>([]);
-  
-  const [allCourses] = useState([
-    // Computer Studies Program courses
-    { id: 1, name: 'BSIT', department_id: 1 },
-    { id: 2, name: 'BSCS', department_id: 1 },
-    { id: 3, name: 'BLIS', department_id: 1 },
-    { id: 4, name: 'BSEMC', department_id: 1 },
-    // Engineering Program courses
-    { id: 5, name: 'BSCE', department_id: 2 },
-    { id: 6, name: 'BSIE', department_id: 2 },
-    { id: 7, name: 'BSGE', department_id: 2 },
-    { id: 8, name: 'BSME', department_id: 2 },
-    // Teacher Education Program courses
-    { id: 9, name: 'BSE Major in English', department_id: 3 },
-    { id: 10, name: 'BSE Major in Mathematics', department_id: 3 },
-    { id: 11, name: 'BSE Major in Biology', department_id: 3 },
-    { id: 12, name: 'BSE Major in Chemistry', department_id: 3 }
-  ]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
   
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
 
@@ -60,6 +44,28 @@ const Students: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching departments:', error);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get('/courses');
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setCourses(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  const fetchAcademicYears = async () => {
+    try {
+      const response = await api.get('/academic-years');
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setAcademicYears(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching academic years:', error);
     }
   };
 
@@ -96,7 +102,7 @@ const Students: React.FC = () => {
 
   // Filter courses based on selected department
   const filterCoursesByDepartment = (departmentId: string) => {
-    const filtered = allCourses.filter(course => course.department_id === parseInt(departmentId));
+    const filtered = courses.filter((course: any) => course.department_id === parseInt(departmentId));
     setAvailableCourses(filtered);
     // Reset course selection when department changes
     setFormData(prev => ({ ...prev, course_id: filtered.length > 0 ? filtered[0].id.toString() : '' }));
@@ -104,10 +110,17 @@ const Students: React.FC = () => {
 
   useEffect(() => {
     fetchDepartments();
+    fetchCourses();
+    fetchAcademicYears();
     fetchStudents();
-    // Initialize with first department's courses
-    filterCoursesByDepartment('1');
   }, []);
+
+  // Set initial available courses when courses and departments are loaded
+  useEffect(() => {
+    if (courses.length > 0 && departments.length > 0) {
+      filterCoursesByDepartment(formData.department_id);
+    }
+  }, [courses, departments]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +184,7 @@ const Students: React.FC = () => {
       student_id: student.student_id || '',
       course_id: student.course_id?.toString() || '1',
       department_id: student.department_id?.toString() || '1',
-      academic_year: student.academic_year || '',
+      academic_year: student.academic_year_id?.toString() || '',
       enrollment_date: student.date_enrolled || '',
       phone: student.phone || '',
       address: student.address || ''
@@ -292,7 +305,7 @@ const Students: React.FC = () => {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">All Courses</option>
-                  {allCourses.map((course: any) => (
+                  {courses.map((course: any) => (
                     <option key={course.id} value={course.id}>
                       {course.name}
                     </option>
@@ -381,7 +394,7 @@ const Students: React.FC = () => {
                       {student.department_name || 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {student.academic_year || 'N/A'}
+                      {student.academic_year?.name || 'N/A'}
                     </TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
@@ -526,13 +539,20 @@ const Students: React.FC = () => {
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <select
                 name="academic_year"
-                placeholder="Academic Year (e.g., 2024-2025)"
                 value={formData.academic_year}
-                onChange={handleInputChange}
+                onChange={(e) => setFormData({...formData, academic_year: e.target.value})}
                 required
-              />
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Academic Year</option>
+                {academicYears.map((year) => (
+                  <option key={year.id} value={year.id}>
+                    {year.name} ({year.start_year} - {year.end_year})
+                  </option>
+                ))}
+              </select>
               <Input
                 name="enrollment_date"
                 type="date"
@@ -656,13 +676,20 @@ const Students: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <select
                 name="academic_year"
-                placeholder="Academic Year (e.g., 2024-2025)"
                 value={formData.academic_year}
-                onChange={handleInputChange}
+                onChange={(e) => setFormData({...formData, academic_year: e.target.value})}
                 required
-              />
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Academic Year</option>
+                {academicYears.map((year) => (
+                  <option key={year.id} value={year.id}>
+                    {year.name} ({year.start_year} - {year.end_year})
+                  </option>
+                ))}
+              </select>
               <Input
                 name="enrollment_date"
                 type="date"

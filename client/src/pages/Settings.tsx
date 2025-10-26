@@ -43,8 +43,8 @@ const Settings: React.FC = () => {
 
   const [academicYearForm, setAcademicYearForm] = useState({
     name: '',
-    year_start: '',
-    year_end: '',
+    start_year: '',
+    end_year: '',
     is_current: false
   });
 
@@ -69,11 +69,14 @@ const Settings: React.FC = () => {
   const fetchCourses = async () => {
     try {
       const response = await api.get('/courses');
-      if (response.data.success) {
-        setCourses(response.data.data || []);
+      if (response.data.success && response.data.data) {
+        setCourses(response.data.data);
+      } else {
+        setCourses([]);
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
+      setCourses([]);
     }
   };
 
@@ -137,11 +140,19 @@ const Settings: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      
+      // Prepare form data
+      const submitData = {
+        ...courseForm,
+        department_id: courseForm.department_id ? parseInt(courseForm.department_id) : null,
+        credits: courseForm.credits ? parseInt(courseForm.credits) : null,
+      };
+      
       if (editingCourse) {
-        await api.put(`/courses/${editingCourse.id}`, courseForm);
+        await api.put(`/courses/${editingCourse.id}`, submitData);
         alert('Course updated successfully!');
       } else {
-        await api.post('/courses', courseForm);
+        await api.post('/courses', submitData);
         alert('Course created successfully!');
       }
       setShowCourseForm(false);
@@ -192,7 +203,7 @@ const Settings: React.FC = () => {
       }
       setShowAcademicYearForm(false);
       setEditingAcademicYear(null);
-      setAcademicYearForm({ name: '', year_start: '', year_end: '', is_current: false });
+      setAcademicYearForm({ name: '', start_year: '', end_year: '', is_current: false });
       fetchAcademicYears();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to save academic year');
@@ -205,8 +216,8 @@ const Settings: React.FC = () => {
     setEditingAcademicYear(academicYear);
     setAcademicYearForm({
       name: academicYear.name || '',
-      year_start: academicYear.year_start || '',
-      year_end: academicYear.year_end || '',
+      start_year: academicYear.start_year || '',
+      end_year: academicYear.end_year || '',
       is_current: academicYear.is_current || false
     });
     setShowAcademicYearForm(true);
@@ -215,7 +226,7 @@ const Settings: React.FC = () => {
   const handleArchiveAcademicYear = async (id: number, name: string) => {
     if (!window.confirm(`Are you sure you want to archive ${name}?`)) return;
     try {
-      await api.delete(`/academic-years/${id}`);
+      await api.delete(`/academic-years/${id}/archive`);
       alert('Academic year archived successfully!');
       fetchAcademicYears();
     } catch (error: any) {
@@ -416,8 +427,7 @@ const Settings: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Start Year</TableHead>
-                      <TableHead>End Year</TableHead>
+                      <TableHead>Years</TableHead>
                       <TableHead>Current</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -426,8 +436,7 @@ const Settings: React.FC = () => {
                     {academicYears.map((year) => (
                       <TableRow key={year.id}>
                         <TableCell className="font-medium">{year.name}</TableCell>
-                        <TableCell>{year.year_start}</TableCell>
-                        <TableCell>{year.year_end}</TableCell>
+                        <TableCell>{year.start_year} - {year.end_year}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             year.is_current 
@@ -582,15 +591,15 @@ const Settings: React.FC = () => {
               <Input
                 placeholder="Start Year"
                 type="number"
-                value={academicYearForm.year_start}
-                onChange={(e) => setAcademicYearForm({...academicYearForm, year_start: e.target.value})}
+                value={academicYearForm.start_year}
+                onChange={(e) => setAcademicYearForm({...academicYearForm, start_year: e.target.value})}
                 required
               />
               <Input
                 placeholder="End Year"
                 type="number"
-                value={academicYearForm.year_end}
-                onChange={(e) => setAcademicYearForm({...academicYearForm, year_end: e.target.value})}
+                value={academicYearForm.end_year}
+                onChange={(e) => setAcademicYearForm({...academicYearForm, end_year: e.target.value})}
                 required
               />
             </div>

@@ -16,7 +16,9 @@ export interface Student {
     user_name?: string;
     user_email?: string;
     course_name?: string;
+    course_code?: string;
     department_name?: string;
+    academic_year_name?: string;
 }
 
 interface StudentRow extends RowDataPacket, Student {}
@@ -40,14 +42,21 @@ export class StudentModel {
                     u.email as user_email,
                     c.name as course_name,
                     c.code as course_code,
-                    d.name as department_name
+                    d.name as department_name,
+                    s.academic_year as academic_year_name
                 FROM students s
                 LEFT JOIN users u ON s.user_id = u.id
                 LEFT JOIN courses c ON s.course_id = c.id
                 LEFT JOIN departments d ON s.department_id = d.id
             `;
             
-            let countQuery = 'SELECT COUNT(*) as total FROM students s LEFT JOIN users u ON s.user_id = u.id LEFT JOIN courses c ON s.course_id = c.id LEFT JOIN departments d ON s.department_id = d.id';
+            let countQuery = `
+                SELECT COUNT(DISTINCT s.id) as total 
+                FROM students s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN courses c ON s.course_id = c.id
+                LEFT JOIN departments d ON s.department_id = d.id
+            `;
             const params: any[] = [];
             const conditions: string[] = [];
 
@@ -76,7 +85,13 @@ export class StudentModel {
             query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
             const offset = (page - 1) * limit;
             
+            console.log('StudentModel.findAll - Query:', query);
+            console.log('StudentModel.findAll - Params:', [...params, limit, offset]);
+            
             const [students] = await pool.execute<StudentRow[]>(query, [...params, limit, offset]);
+            
+            console.log('StudentModel.findAll - First student:', students[0]);
+            
             const [countResult] = await pool.execute<RowDataPacket[]>(countQuery, params);
             const total = countResult[0].total;
 
