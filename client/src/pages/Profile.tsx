@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { User, Edit, LogOut, Save, Eye, EyeOff } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const Profile: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -59,13 +58,15 @@ const Profile: React.FC = () => {
       }
       
       const response = await api.put('/profile', formData);
-      console.log('Update response:', response.data);
       
       if (response.data.success) {
         // Update the displayed data immediately with the response
         if (response.data.user) {
-          // Update auth context with new user data (if needed)
-          // For now, just update the local profileData state
+          // Update auth context with new user data
+          updateUser({
+            name: response.data.user.name,
+            email: response.data.user.email
+          });
         }
         
         if (response.data.data) {

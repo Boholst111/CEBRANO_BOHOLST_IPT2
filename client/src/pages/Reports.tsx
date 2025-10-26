@@ -37,11 +37,12 @@ const Reports: React.FC = () => {
   const fetchDepartments = async () => {
     try {
       const response = await api.get('/departments');
-      if (response.data.success && Array.isArray(response.data.data)) {
-        setDepartments(response.data.data);
-      }
+      // Handle the response format: { success: true, data: [...] }
+      const depts = response.data?.data || [];
+      setDepartments(depts);
     } catch (error) {
       console.error('Error fetching departments:', error);
+      setDepartments([]);
     }
   };
 
@@ -49,11 +50,12 @@ const Reports: React.FC = () => {
   const fetchCourses = async () => {
     try {
       const response = await api.get('/courses');
-      if (response.data.success && Array.isArray(response.data.data)) {
-        setCourses(response.data.data);
-      }
+      // Handle the response format: { success: true, data: [...] }
+      const crses = response.data?.data || [];
+      setCourses(crses);
     } catch (error) {
       console.error('Error fetching courses:', error);
+      setCourses([]);
     }
   };
 
@@ -61,11 +63,20 @@ const Reports: React.FC = () => {
   const fetchAcademicYears = async () => {
     try {
       const response = await api.get('/academic-years');
-      if (response.data.success && Array.isArray(response.data.data)) {
-        setAcademicYears(response.data.data);
+      
+      // Handle the response format: { success: true, data: [...] }
+      let years = response.data?.data || [];
+      
+      // ABSOLUTELY ensure we're setting an array
+      if (!Array.isArray(years)) {
+        console.error('ERROR: years is not an array! Setting to empty array. Type:', typeof years, 'Value:', years);
+        years = [];
       }
+      
+      setAcademicYears(years);
     } catch (error) {
       console.error('Error fetching academic years:', error);
+      setAcademicYears([]);
     }
   };
 
@@ -81,25 +92,59 @@ const Reports: React.FC = () => {
       if (studentFilters.academic_year) params.append('academic_year', studentFilters.academic_year);
       if (format) params.append('format', format);
       
-      const response = await api.get(`/reports/students?${params.toString()}`);
-      
-      if (response.data.success) {
-        if (format) {
-          alert(`${format.toUpperCase()} report generated successfully! ${response.data.message}`);
-          if (response.data.download_url) {
-            // Create a proper download link with full API URL
-            const downloadLink = document.createElement('a');
-            const baseUrl = api.defaults.baseURL || 'http://localhost:5000/api';
-            const fullUrl = `${baseUrl}/reports${response.data.download_url}`;
-            downloadLink.href = fullUrl;
-            downloadLink.download = response.data.download_url.split('/').pop() || `report.${format}`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-          }
-        } else {
-          setReportData(response.data);
+      if (format) {
+        // For downloads, use axios to get the file with proper auth headers
+        const exportPath = format === 'pdf' ? '/export/students/pdf' : '/export/students/excel';
+        const url = `${exportPath}?${params.toString()}`;
+        
+        try {
+          const response = await api.get(url, {
+            responseType: 'blob',
+          });
+          
+          // Create download link
+          const blob = new Blob([response.data], { 
+            type: format === 'pdf' ? 'application/pdf' : 'text/csv' 
+          });
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `students_report_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : 'csv'}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(downloadUrl);
+          
+          alert(`${format.toUpperCase()} report downloaded successfully!`);
+        } catch (error) {
+          console.error('Download error:', error);
+          alert(`Failed to download ${format.toUpperCase()} report`);
+        }
+      } else {
+        // For preview
+        const response = await api.get(`/reports/students?${params.toString()}`);
+        
+        // Handle response - backend returns { success: true, data: { students: [...], statistics: {...} } }
+        const reportData = response.data?.data || response.data;
+        const students = reportData?.students;
+        
+        if (students && Array.isArray(students)) {
+          // Set the report data with the statistics from the response
+          setReportData({
+            data: {
+              students: reportData.students,
+              statistics: reportData.statistics || {
+                total: reportData.students.length,
+                byCourse: [],
+                byDepartment: [],
+                byAcademicYear: []
+              }
+            }
+          });
           setActiveTab('student');
+        } else {
+          console.error('Invalid response format:', response.data);
+          alert('No data available for the selected filters or invalid response format');
         }
       }
     } catch (error: any) {
@@ -120,25 +165,59 @@ const Reports: React.FC = () => {
       if (facultyFilters.employment_type) params.append('employment_type', facultyFilters.employment_type);
       if (format) params.append('format', format);
       
-      const response = await api.get(`/reports/faculty?${params.toString()}`);
-      
-      if (response.data.success) {
-        if (format) {
-          alert(`${format.toUpperCase()} report generated successfully! ${response.data.message}`);
-          if (response.data.download_url) {
-            // Create a proper download link with full API URL
-            const downloadLink = document.createElement('a');
-            const baseUrl = api.defaults.baseURL || 'http://localhost:5000/api';
-            const fullUrl = `${baseUrl}/reports${response.data.download_url}`;
-            downloadLink.href = fullUrl;
-            downloadLink.download = response.data.download_url.split('/').pop() || `report.${format}`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-          }
-        } else {
-          setReportData(response.data);
+      if (format) {
+        // For downloads, use axios to get the file with proper auth headers
+        const exportPath = format === 'pdf' ? '/export/faculty/pdf' : '/export/faculty/excel';
+        const url = `${exportPath}?${params.toString()}`;
+        
+        try {
+          const response = await api.get(url, {
+            responseType: 'blob',
+          });
+          
+          // Create download link
+          const blob = new Blob([response.data], { 
+            type: format === 'pdf' ? 'application/pdf' : 'text/csv' 
+          });
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `faculty_report_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : 'csv'}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(downloadUrl);
+          
+          alert(`${format.toUpperCase()} report downloaded successfully!`);
+        } catch (error) {
+          console.error('Download error:', error);
+          alert(`Failed to download ${format.toUpperCase()} report`);
+        }
+      } else {
+        // For preview
+        const response = await api.get(`/reports/faculty?${params.toString()}`);
+        
+        // Handle response - backend returns { success: true, data: { faculty: [...], statistics: {...} } }
+        const reportData = response.data?.data || response.data;
+        const faculty = reportData?.faculty;
+        
+        if (faculty && Array.isArray(faculty)) {
+          // Set the report data with the statistics from the response
+          setReportData({
+            data: {
+              faculty: reportData.faculty,
+              statistics: reportData.statistics || {
+                total: reportData.faculty.length,
+                byDepartment: [],
+                byEmploymentType: [],
+                averageSalary: 0
+              }
+            }
+          });
           setActiveTab('faculty');
+        } else {
+          console.error('Invalid response format:', response.data);
+          alert('No data available for the selected filters or invalid response format');
         }
       }
     } catch (error: any) {
@@ -214,9 +293,9 @@ const Reports: React.FC = () => {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">All Academic Years</option>
-                  {academicYears.map((year) => (
-                    <option key={year.id} value={year.year || year.start_year}>
-                      {year.year || year.start_year}
+                  {Array.isArray(academicYears) && academicYears.map((year) => (
+                    <option key={year.id} value={year.id}>
+                      {year.name || `${year.start_year} - ${year.end_year}`}
                     </option>
                   ))}
                 </select>
@@ -378,15 +457,48 @@ const Reports: React.FC = () => {
                     </div>
                     <div className="p-3 bg-green-50 rounded-lg">
                       <p className="text-sm text-green-600">By Course</p>
-                      <p className="text-sm text-green-900">{reportData.data?.statistics?.byCourse?.length || 0} courses</p>
+                      <p className="text-sm text-green-900">
+                        {reportData.data?.statistics?.byCourse && Array.isArray(reportData.data.statistics.byCourse) 
+                          ? reportData.data.statistics.byCourse.length 
+                          : 0} courses
+                      </p>
+                      {reportData.data?.statistics?.byCourse && reportData.data.statistics.byCourse.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {reportData.data.statistics.byCourse.slice(0, 2).map((item: any) => (
+                            <div key={item.course}>{item.course}: {item.count}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="p-3 bg-purple-50 rounded-lg">
                       <p className="text-sm text-purple-600">By Department</p>
-                      <p className="text-sm text-purple-900">{reportData.data?.statistics?.byDepartment?.length || 0} departments</p>
+                      <p className="text-sm text-purple-900">
+                        {reportData.data?.statistics?.byDepartment && Array.isArray(reportData.data.statistics.byDepartment)
+                          ? reportData.data.statistics.byDepartment.length
+                          : 0} departments
+                      </p>
+                      {reportData.data?.statistics?.byDepartment && reportData.data.statistics.byDepartment.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {reportData.data.statistics.byDepartment.slice(0, 2).map((item: any) => (
+                            <div key={item.department}>{item.department}: {item.count}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="p-3 bg-orange-50 rounded-lg">
                       <p className="text-sm text-orange-600">Academic Years</p>
-                      <p className="text-sm text-orange-900">{reportData.data?.statistics?.byAcademicYear?.length || 0} years</p>
+                      <p className="text-sm text-orange-900">
+                        {reportData.data?.statistics?.byAcademicYear && Array.isArray(reportData.data.statistics.byAcademicYear)
+                          ? reportData.data.statistics.byAcademicYear.length
+                          : 0} years
+                      </p>
+                      {reportData.data?.statistics?.byAcademicYear && reportData.data.statistics.byAcademicYear.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {reportData.data.statistics.byAcademicYear.slice(0, 2).map((item: any) => (
+                            <div key={item.year}>{item.year}: {item.count}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -405,9 +517,9 @@ const Reports: React.FC = () => {
                         <TableRow key={index}>
                           <TableCell>{student.student_id}</TableCell>
                           <TableCell>{student.user_name}</TableCell>
-                          <TableCell>{student.course_code}</TableCell>
-                          <TableCell>{student.department_name}</TableCell>
-                          <TableCell>{student.academic_year}</TableCell>
+                          <TableCell>{student.course_name || student.course_code || 'N/A'}</TableCell>
+                          <TableCell>{student.department_name || 'N/A'}</TableCell>
+                          <TableCell>{student.academic_year_name || 'N/A'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -436,11 +548,33 @@ const Reports: React.FC = () => {
                     </div>
                     <div className="p-3 bg-purple-50 rounded-lg">
                       <p className="text-sm text-purple-600">Departments</p>
-                      <p className="text-sm text-purple-900">{reportData.data?.statistics?.byDepartment?.length || 0} departments</p>
+                      <p className="text-sm text-purple-900">
+                        {reportData.data?.statistics?.byDepartment && Array.isArray(reportData.data.statistics.byDepartment)
+                          ? reportData.data.statistics.byDepartment.length
+                          : 0} departments
+                      </p>
+                      {reportData.data?.statistics?.byDepartment && reportData.data.statistics.byDepartment.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {reportData.data.statistics.byDepartment.slice(0, 2).map((item: any) => (
+                            <div key={item.department}>{item.department}: {item.count}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="p-3 bg-orange-50 rounded-lg">
                       <p className="text-sm text-orange-600">Employment Types</p>
-                      <p className="text-sm text-orange-900">{reportData.data?.statistics?.byEmploymentType?.length || 0} types</p>
+                      <p className="text-sm text-orange-900">
+                        {reportData.data?.statistics?.byEmploymentType && Array.isArray(reportData.data.statistics.byEmploymentType)
+                          ? reportData.data.statistics.byEmploymentType.length
+                          : 0} types
+                      </p>
+                      {reportData.data?.statistics?.byEmploymentType && reportData.data.statistics.byEmploymentType.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {reportData.data.statistics.byEmploymentType.slice(0, 2).map((item: any) => (
+                            <div key={item.type}>{item.type}: {item.count}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   

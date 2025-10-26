@@ -19,7 +19,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",

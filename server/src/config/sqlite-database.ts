@@ -12,7 +12,7 @@ if (!fs.existsSync(dbPath)) {
 }
 
 // Initialize database
-const db = new Database(dbFile);
+const db: Database.Database = new Database(dbFile);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');

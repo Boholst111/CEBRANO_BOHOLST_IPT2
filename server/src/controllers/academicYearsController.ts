@@ -3,10 +3,20 @@ import { query } from '../config/mysql-database';
 
 export const getAcademicYears = async (req: Request, res: Response) => {
     try {
-        const result: any = await query('SELECT * FROM academic_years ORDER BY start_year DESC');
+        // Get distinct academic years from students table
+        const result: any = await query('SELECT DISTINCT academic_year as name FROM students WHERE academic_year IS NOT NULL AND academic_year != "" ORDER BY academic_year DESC');
+        
+        // Transform to expected format
+        const academicYears = result.map((row: any) => ({
+            id: row.name, // Use the academic year string as ID
+            name: row.name,
+            start_year: row.name.split('-')[0],
+            end_year: row.name.split('-')[1]
+        }));
+        
         res.json({
             success: true,
-            data: result
+            data: academicYears
         });
     } catch (error) {
         console.error('Get academic years error:', error);
