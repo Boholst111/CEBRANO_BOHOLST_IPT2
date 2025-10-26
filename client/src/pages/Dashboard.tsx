@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Users, GraduationCap, TrendingUp, Calendar } from 'lucide-react';
 import api from '../lib/api';
@@ -20,6 +21,7 @@ interface Stats {
 }
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -180,17 +182,26 @@ const Dashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/students')}
+            >
               <GraduationCap className="h-8 w-8 text-primary mb-2" />
               <h3 className="font-medium">Add New Student</h3>
               <p className="text-sm text-gray-600">Register a new student in the system</p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/faculty')}
+            >
               <Users className="h-8 w-8 text-primary mb-2" />
               <h3 className="font-medium">Add Faculty Member</h3>
               <p className="text-sm text-gray-600">Add a new faculty member</p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/reports')}
+            >
               <TrendingUp className="h-8 w-8 text-primary mb-2" />
               <h3 className="font-medium">View Reports</h3>
               <p className="text-sm text-gray-600">Generate and view detailed reports</p>
