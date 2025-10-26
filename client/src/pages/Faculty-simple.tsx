@@ -18,8 +18,6 @@ const Faculty: React.FC = () => {
       setError('');
       const response = await api.get(`/faculty?search=${search}`);
       
-      console.log('Faculty API Response:', response.data);
-      
       // Handle different possible response formats
       if (response.data.success && response.data.data) {
         if (Array.isArray(response.data.data)) {

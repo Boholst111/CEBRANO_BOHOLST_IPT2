@@ -17,11 +17,7 @@ const Faculty: React.FC = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingFaculty, setEditingFaculty] = useState<any>(null);
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [departments] = useState([
-    { id: 1, name: 'Computer Studies Program' },
-    { id: 2, name: 'Engineering Program' },
-    { id: 3, name: 'Teacher Education Program' }
-  ]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,6 +35,17 @@ const Faculty: React.FC = () => {
     address: ''
   });
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setDepartments(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
   const fetchFaculty = async (search = '', departmentFilter = '') => {
     try {
       setLoading(true);
@@ -50,8 +57,6 @@ const Faculty: React.FC = () => {
       if (departmentFilter) params.append('department_id', departmentFilter);
       
       const response = await api.get(`/faculty?${params.toString()}`);
-      
-      console.log('Faculty API Response:', response.data);
       
       // Handle the correct response format from backend
       if (response.data.faculty && Array.isArray(response.data.faculty)) {
@@ -72,6 +77,7 @@ const Faculty: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchDepartments();
     fetchFaculty();
   }, []);
 
