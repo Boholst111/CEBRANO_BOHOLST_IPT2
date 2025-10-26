@@ -11,6 +11,10 @@ import authRoutes from './routes/auth';
 import studentRoutes from './routes/students';
 import facultyRoutes from './routes/faculty';
 import reportsRoutes from './routes/reports';
+import departmentsRoutes from './routes/departments';
+import coursesRoutes from './routes/courses';
+import academicYearsRoutes from './routes/academic-years';
+import profileRoutes from './routes/profile';
 
 // Load environment variables
 dotenv.config();
@@ -43,9 +47,34 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/departments', departmentsRoutes);
+app.use('/api/courses', coursesRoutes);
+app.use('/api/academic-years', academicYearsRoutes);
+
+// API root endpoint
+app.get('/api', (req, res) => {
+    res.json({ 
+        message: 'CEBRANO BOHOLST IPT2 API',
+        version: '1.0.0',
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            auth: '/api/auth',
+            profile: '/api/profile',
+            students: '/api/students',
+            faculty: '/api/faculty',
+            reports: '/api/reports',
+            departments: '/api/departments',
+            courses: '/api/courses',
+            academicYears: '/api/academic-years',
+            health: '/api/health'
+        }
+    });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

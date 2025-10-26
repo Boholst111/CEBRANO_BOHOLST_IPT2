@@ -50,15 +50,43 @@ const Profile: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      
+      // Validate inputs
+      if (!formData.name || !formData.email) {
+        alert('Name and email are required');
+        setLoading(false);
+        return;
+      }
+      
       const response = await api.put('/profile', formData);
+      console.log('Update response:', response.data);
+      
       if (response.data.success) {
+        // Update the displayed data immediately with the response
+        if (response.data.user) {
+          // Update auth context with new user data (if needed)
+          // For now, just update the local profileData state
+        }
+        
+        if (response.data.data) {
+          setProfileData({
+            ...profileData,
+            phone: response.data.data.phone || formData.phone,
+            address: response.data.data.address || formData.address
+          });
+        }
+        
         alert('Profile updated successfully!');
         setShowEditForm(false);
-        fetchProfile();
+        
+        // Also refresh profile data from server
+        await fetchProfile();
+      } else {
+        alert(response.data.message || 'Failed to update profile');
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert(error.response?.data?.message || 'Failed to update profile');
+      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -158,7 +186,18 @@ const Profile: React.FC = () => {
                     Member Since
                   </label>
                   <p className="text-lg text-gray-900">
-                    {(user as any)?.created_at ? new Date((user as any).created_at).toLocaleDateString() : 'N/A'}
+                    {(user as any)?.created_at 
+                      ? new Date((user as any).created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : new Date().toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                    }
                   </p>
                 </div>
               </div>

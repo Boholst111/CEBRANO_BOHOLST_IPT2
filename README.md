@@ -90,7 +90,7 @@ npm run dev
 ### Access the Application
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:5000
-- **Default Login**: admin / admin123
+- **Default Login**: `admin@example.com` / `password` (configurable via `.env` file)
 
 ## 📁 Project Structure
 
@@ -157,7 +157,13 @@ DB_PORT=3306
 DB_NAME=sfms_db
 DB_USER=root
 DB_PASSWORD=your_mysql_password
+
+# Authentication Configuration (Default Admin)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=password
 ```
+
+**Note:** For production deployments, update `ADMIN_EMAIL` and `ADMIN_PASSWORD` with actual credentials, and implement database-backed authentication as outlined in [CLEANUP_SUMMARY.md](./CLEANUP_SUMMARY.md).
 
 ## 📖 Documentation
 

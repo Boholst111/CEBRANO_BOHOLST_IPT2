@@ -39,6 +39,7 @@ export class StudentModel {
                     u.name as user_name,
                     u.email as user_email,
                     c.name as course_name,
+                    c.code as course_code,
                     d.name as department_name
                 FROM students s
                 LEFT JOIN users u ON s.user_id = u.id

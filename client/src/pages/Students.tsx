@@ -30,11 +30,7 @@ const Students: React.FC = () => {
     phone: '',
     address: ''
   });
-  const [departments] = useState([
-    { id: 1, name: 'Computer Studies Program' },
-    { id: 2, name: 'Engineering Program' },
-    { id: 3, name: 'Teacher Education Program' }
-  ]);
+  const [departments, setDepartments] = useState<any[]>([]);
   
   const [allCourses] = useState([
     // Computer Studies Program courses
@@ -56,6 +52,17 @@ const Students: React.FC = () => {
   
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setDepartments(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
   const fetchStudents = async (search = '', departmentFilter = '', courseFilter = '') => {
     try {
       setLoading(true);
@@ -68,8 +75,6 @@ const Students: React.FC = () => {
       if (courseFilter) params.append('course_id', courseFilter);
       
       const response = await api.get(`/students?${params.toString()}`);
-      
-      console.log('Students API Response:', response.data);
       
       // Handle the correct response format from backend
       if (response.data.students && Array.isArray(response.data.students)) {
@@ -98,6 +103,7 @@ const Students: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchDepartments();
     fetchStudents();
     // Initialize with first department's courses
     filterCoursesByDepartment('1');

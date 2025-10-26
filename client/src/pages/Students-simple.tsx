@@ -18,8 +18,6 @@ const Students: React.FC = () => {
       setError('');
       const response = await api.get(`/students?search=${search}`);
       
-      console.log('Students API Response:', response.data);
-      
       // Handle different possible response formats
       if (response.data.success && response.data.data) {
         if (Array.isArray(response.data.data)) {
