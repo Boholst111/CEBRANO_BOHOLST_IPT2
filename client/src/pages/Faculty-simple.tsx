@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 const Faculty: React.FC = () => {
   const [faculty, setFaculty] = useState<any[]>([]);
@@ -16,6 +16,7 @@ const Faculty: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      const api = getAxiosClient();
       const response = await api.get(`/faculty?search=${search}`);
       
       // Handle different possible response formats

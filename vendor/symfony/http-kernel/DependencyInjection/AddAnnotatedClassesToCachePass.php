@@ -12,28 +12,30 @@
 namespace Symfony\Component\HttpKernel\DependencyInjection;
 
 use Composer\Autoload\ClassLoader;
+use Symfony\Component\Debug\DebugClassLoader as LegacyDebugClassLoader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\ErrorHandler\DebugClassLoader;
 use Symfony\Component\HttpKernel\Kernel;
 
-trigger_deprecation('symfony/http-kernel', '7.1', 'The "%s" class is deprecated since Symfony 7.1 and will be removed in 8.0.', AddAnnotatedClassesToCachePass::class);
-
 /**
  * Sets the classes to compile in the cache for the container.
  *
  * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since Symfony 7.1, to be removed in 8.0
  */
 class AddAnnotatedClassesToCachePass implements CompilerPassInterface
 {
-    public function __construct(
-        private Kernel $kernel,
-    ) {
+    private $kernel;
+
+    public function __construct(Kernel $kernel)
+    {
+        $this->kernel = $kernel;
     }
 
-    public function process(ContainerBuilder $container): void
+    /**
+     * {@inheritdoc}
+     */
+    public function process(ContainerBuilder $container)
     {
         $annotatedClasses = [];
         foreach ($container->getExtensions() as $extension) {
@@ -91,7 +93,7 @@ class AddAnnotatedClassesToCachePass implements CompilerPassInterface
                 continue;
             }
 
-            if ($function[0] instanceof DebugClassLoader) {
+            if ($function[0] instanceof DebugClassLoader || $function[0] instanceof LegacyDebugClassLoader) {
                 $function = $function[0]->getClassLoader();
             }
 
@@ -115,7 +117,7 @@ class AddAnnotatedClassesToCachePass implements CompilerPassInterface
             $regex = strtr($regex, ['\\*\\*' => '.*?', '\\*' => '[^\\\\]*?']);
 
             // If this class does not end by a slash, anchor the end
-            if (!str_ends_with($regex, '\\')) {
+            if ('\\' !== substr($regex, -1)) {
                 $regex .= '$';
             }
 

@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { User, Edit, LogOut, Save, Eye, EyeOff } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
 
 const Profile: React.FC = () => {
@@ -26,6 +26,7 @@ const Profile: React.FC = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      const api = getAxiosClient();
       const response = await api.get('/profile');
       if (response.data.success) {
         setProfileData(response.data.data);
@@ -57,6 +58,7 @@ const Profile: React.FC = () => {
         return;
       }
       
+      const api = getAxiosClient();
       const response = await api.put('/profile', formData);
       
       if (response.data.success) {
@@ -98,6 +100,7 @@ const Profile: React.FC = () => {
     if (!window.confirm('Are you sure you want to logout?')) return;
     
     try {
+      const api = getAxiosClient();
       await api.post('/logout');
       logout();
     } catch (error) {

@@ -12,27 +12,29 @@
 namespace Symfony\Component\HttpKernel\Controller\ArgumentResolver;
 
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
+use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
-use Symfony\Component\HttpKernel\Exception\NearMissValueResolverException;
 
 /**
  * Yields the same instance as the request object passed along.
  *
  * @author Iltar van der Berg <kjarli@gmail.com>
  */
-final class RequestValueResolver implements ValueResolverInterface
+final class RequestValueResolver implements ArgumentValueResolverInterface
 {
-    public function resolve(Request $request, ArgumentMetadata $argument): array
+    /**
+     * {@inheritdoc}
+     */
+    public function supports(Request $request, ArgumentMetadata $argument): bool
     {
-        if (Request::class === $argument->getType() || is_subclass_of($argument->getType(), Request::class)) {
-            return [$request];
-        }
+        return Request::class === $argument->getType() || is_subclass_of($argument->getType(), Request::class);
+    }
 
-        if (str_ends_with($argument->getType() ?? '', '\\Request')) {
-            throw new NearMissValueResolverException(\sprintf('Looks like you required a Request object with the wrong class name "%s". Did you mean to use "%s" instead?', $argument->getType(), Request::class));
-        }
-
-        return [];
+    /**
+     * {@inheritdoc}
+     */
+    public function resolve(Request $request, ArgumentMetadata $argument): iterable
+    {
+        yield $request;
     }
 }

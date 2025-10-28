@@ -13,7 +13,6 @@ namespace Symfony\Component\EventDispatcher\Debug;
 
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,34 +29,49 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterface
 {
-    /**
-     * @var \SplObjectStorage<WrappedListener, array{string, string}>|null
-     */
-    private ?\SplObjectStorage $callStack = null;
-    private array $wrappedListeners = [];
-    private array $orphanedEvents = [];
-    private string $currentRequestHash = '';
+    protected $logger;
+    protected $stopwatch;
 
-    public function __construct(
-        private EventDispatcherInterface $dispatcher,
-        protected Stopwatch $stopwatch,
-        protected ?LoggerInterface $logger = null,
-        private ?RequestStack $requestStack = null,
-        protected readonly ?\Closure $disabled = null,
-    ) {
+    /**
+     * @var \SplObjectStorage<WrappedListener, array{string, string}>
+     */
+    private $callStack;
+    private $dispatcher;
+    private $wrappedListeners;
+    private $orphanedEvents;
+    private $requestStack;
+    private $currentRequestHash = '';
+
+    public function __construct(EventDispatcherInterface $dispatcher, Stopwatch $stopwatch, ?LoggerInterface $logger = null, ?RequestStack $requestStack = null)
+    {
+        $this->dispatcher = $dispatcher;
+        $this->stopwatch = $stopwatch;
+        $this->logger = $logger;
+        $this->wrappedListeners = [];
+        $this->orphanedEvents = [];
+        $this->requestStack = $requestStack;
     }
 
-    public function addListener(string $eventName, callable|array $listener, int $priority = 0): void
+    /**
+     * {@inheritdoc}
+     */
+    public function addListener(string $eventName, $listener, int $priority = 0)
     {
         $this->dispatcher->addListener($eventName, $listener, $priority);
     }
 
-    public function addSubscriber(EventSubscriberInterface $subscriber): void
+    /**
+     * {@inheritdoc}
+     */
+    public function addSubscriber(EventSubscriberInterface $subscriber)
     {
         $this->dispatcher->addSubscriber($subscriber);
     }
 
-    public function removeListener(string $eventName, callable|array $listener): void
+    /**
+     * {@inheritdoc}
+     */
+    public function removeListener(string $eventName, $listener)
     {
         if (isset($this->wrappedListeners[$eventName])) {
             foreach ($this->wrappedListeners[$eventName] as $index => $wrappedListener) {
@@ -69,20 +83,29 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
             }
         }
 
-        $this->dispatcher->removeListener($eventName, $listener);
+        return $this->dispatcher->removeListener($eventName, $listener);
     }
 
-    public function removeSubscriber(EventSubscriberInterface $subscriber): void
+    /**
+     * {@inheritdoc}
+     */
+    public function removeSubscriber(EventSubscriberInterface $subscriber)
     {
-        $this->dispatcher->removeSubscriber($subscriber);
+        return $this->dispatcher->removeSubscriber($subscriber);
     }
 
-    public function getListeners(?string $eventName = null): array
+    /**
+     * {@inheritdoc}
+     */
+    public function getListeners(?string $eventName = null)
     {
         return $this->dispatcher->getListeners($eventName);
     }
 
-    public function getListenerPriority(string $eventName, callable|array $listener): ?int
+    /**
+     * {@inheritdoc}
+     */
+    public function getListenerPriority(string $eventName, $listener)
     {
         // we might have wrapped listeners for the event (if called while dispatching)
         // in that case get the priority by wrapper
@@ -97,24 +120,29 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         return $this->dispatcher->getListenerPriority($eventName, $listener);
     }
 
-    public function hasListeners(?string $eventName = null): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function hasListeners(?string $eventName = null)
     {
         return $this->dispatcher->hasListeners($eventName);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function dispatch(object $event, ?string $eventName = null): object
     {
-        if ($this->disabled?->__invoke()) {
-            return $this->dispatcher->dispatch($event, $eventName);
-        }
-        $eventName ??= $event::class;
+        $eventName = $eventName ?? \get_class($event);
 
-        $this->callStack ??= new \SplObjectStorage();
+        if (null === $this->callStack) {
+            $this->callStack = new \SplObjectStorage();
+        }
 
         $currentRequestHash = $this->currentRequestHash = $this->requestStack && ($request = $this->requestStack->getCurrentRequest()) ? spl_object_hash($request) : '';
 
         if (null !== $this->logger && $event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
-            $this->logger->debug(\sprintf('The "%s" event is already stopped. No listeners have been called.', $eventName));
+            $this->logger->debug(sprintf('The "%s" event is already stopped. No listeners have been called.', $eventName));
         }
 
         $this->preProcess($eventName);
@@ -140,7 +168,10 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         return $event;
     }
 
-    public function getCalledListeners(?Request $request = null): array
+    /**
+     * @return array
+     */
+    public function getCalledListeners(?Request $request = null)
     {
         if (null === $this->callStack) {
             return [];
@@ -158,12 +189,17 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         return $called;
     }
 
-    public function getNotCalledListeners(?Request $request = null): array
+    /**
+     * @return array
+     */
+    public function getNotCalledListeners(?Request $request = null)
     {
         try {
-            $allListeners = $this->dispatcher instanceof EventDispatcher ? $this->getListenersWithPriority() : $this->getListenersWithoutPriority();
+            $allListeners = $this->getListeners();
         } catch (\Exception $e) {
-            $this->logger?->info('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
+            if (null !== $this->logger) {
+                $this->logger->info('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
+            }
 
             // unable to retrieve the uncalled listeners
             return [];
@@ -183,19 +219,18 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         }
 
         $notCalled = [];
-
         foreach ($allListeners as $eventName => $listeners) {
-            foreach ($listeners as [$listener, $priority]) {
+            foreach ($listeners as $listener) {
                 if (!\in_array($listener, $calledListeners, true)) {
                     if (!$listener instanceof WrappedListener) {
-                        $listener = new WrappedListener($listener, null, $this->stopwatch, $this, $priority);
+                        $listener = new WrappedListener($listener, null, $this->stopwatch, $this);
                     }
                     $notCalled[] = $listener->getInfo($eventName);
                 }
             }
         }
 
-        uasort($notCalled, $this->sortNotCalledListeners(...));
+        uasort($notCalled, [$this, 'sortNotCalledListeners']);
 
         return $notCalled;
     }
@@ -213,7 +248,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         return array_merge(...array_values($this->orphanedEvents));
     }
 
-    public function reset(): void
+    public function reset()
     {
         $this->callStack = null;
         $this->orphanedEvents = [];
@@ -225,8 +260,10 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
      *
      * @param string $method    The method name
      * @param array  $arguments The method arguments
+     *
+     * @return mixed
      */
-    public function __call(string $method, array $arguments): mixed
+    public function __call(string $method, array $arguments)
     {
         return $this->dispatcher->{$method}(...$arguments);
     }
@@ -234,14 +271,14 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
     /**
      * Called before dispatching the event.
      */
-    protected function beforeDispatch(string $eventName, object $event): void
+    protected function beforeDispatch(string $eventName, object $event)
     {
     }
 
     /**
      * Called after dispatching the event.
      */
-    protected function afterDispatch(string $eventName, object $event): void
+    protected function afterDispatch(string $eventName, object $event)
     {
     }
 
@@ -259,7 +296,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
             $this->wrappedListeners[$eventName][] = $wrappedListener;
             $this->dispatcher->removeListener($eventName, $listener);
             $this->dispatcher->addListener($eventName, $wrappedListener, $priority);
-            $this->callStack[$wrappedListener] = [$eventName, $this->currentRequestHash];
+            $this->callStack->attach($wrappedListener, [$eventName, $this->currentRequestHash]);
         }
     }
 
@@ -281,9 +318,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
             }
 
             if ($listener->wasCalled()) {
-                $this->logger?->debug('Notified event "{event}" to listener "{listener}".', $context);
+                if (null !== $this->logger) {
+                    $this->logger->debug('Notified event "{event}" to listener "{listener}".', $context);
+                }
             } else {
-                unset($this->callStack[$listener]);
+                $this->callStack->detach($listener);
             }
 
             if (null !== $this->logger && $skipped) {
@@ -291,14 +330,16 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
             }
 
             if ($listener->stoppedPropagation()) {
-                $this->logger?->debug('Listener "{listener}" stopped propagation of the event "{event}".', $context);
+                if (null !== $this->logger) {
+                    $this->logger->debug('Listener "{listener}" stopped propagation of the event "{event}".', $context);
+                }
 
                 $skipped = true;
             }
         }
     }
 
-    private function sortNotCalledListeners(array $a, array $b): int
+    private function sortNotCalledListeners(array $a, array $b)
     {
         if (0 !== $cmp = strcmp($a['event'], $b['event'])) {
             return $cmp;
@@ -321,35 +362,5 @@ class TraceableEventDispatcher implements EventDispatcherInterface, ResetInterfa
         }
 
         return 1;
-    }
-
-    private function getListenersWithPriority(): array
-    {
-        $result = [];
-
-        $allListeners = new \ReflectionProperty(EventDispatcher::class, 'listeners');
-
-        foreach ($allListeners->getValue($this->dispatcher) as $eventName => $listenersByPriority) {
-            foreach ($listenersByPriority as $priority => $listeners) {
-                foreach ($listeners as $listener) {
-                    $result[$eventName][] = [$listener, $priority];
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    private function getListenersWithoutPriority(): array
-    {
-        $result = [];
-
-        foreach ($this->getListeners() as $eventName => $listeners) {
-            foreach ($listeners as $listener) {
-                $result[$eventName][] = [$listener, null];
-            }
-        }
-
-        return $result;
     }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { loadApiConfig } from './lib/apiConfig';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -79,6 +80,26 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [isConfigLoaded, setIsConfigLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    // Initialize API configuration before rendering anything else
+    loadApiConfig()
+      .then(() => setIsConfigLoaded(true))
+      .catch((error) => {
+        console.error('Failed to load API config:', error);
+        setIsConfigLoaded(true); // Continue even if config fails (fallback will be used)
+      });
+  }, []);
+
+  if (!isConfigLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>

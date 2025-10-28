@@ -26,15 +26,17 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 class SurrogateListener implements EventSubscriberInterface
 {
-    public function __construct(
-        private ?SurrogateInterface $surrogate = null,
-    ) {
+    private $surrogate;
+
+    public function __construct(?SurrogateInterface $surrogate = null)
+    {
+        $this->surrogate = $surrogate;
     }
 
     /**
      * Filters the Response.
      */
-    public function onKernelResponse(ResponseEvent $event): void
+    public function onKernelResponse(ResponseEvent $event)
     {
         if (!$event->isMainRequest()) {
             return;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Users, GraduationCap, TrendingUp, Calendar } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 interface Stats {
   students: {
@@ -28,6 +28,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        const api = getAxiosClient();
         const [studentStats, facultyStats] = await Promise.all([
           api.get('/students/stats'),
           api.get('/faculty/stats')
