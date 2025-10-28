@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Settings as SettingsIcon, Building, BookOpen, Calendar, Plus, Edit, Archive, Trash2 } from 'lucide-react';
+import { Building, BookOpen, Calendar, Plus, Edit, Archive } from 'lucide-react';
 import { getAxiosClient } from '../lib/apiConfig';
 
 const Settings: React.FC = () => {
@@ -252,8 +252,8 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">System Settings</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">
           Manage departments, courses, and academic years in a tabbed layout.
         </p>
       </div>

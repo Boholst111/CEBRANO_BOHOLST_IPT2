@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { FileText, Download, BarChart3, Filter, Eye } from 'lucide-react';
+import { FileText, Download, BarChart3, Eye } from 'lucide-react';
 import { getAxiosClient } from '../lib/apiConfig';
 
 const Reports: React.FC = () => {
@@ -244,8 +243,8 @@ const Reports: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Generate comprehensive reports for students and faculty with advanced filtering options.
         </p>
       </div>
@@ -264,7 +263,7 @@ const Reports: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Student Filters */}
-            <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+            <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <h4 className="font-semibold text-sm">Filter Options:</h4>
               
               <div className="grid grid-cols-1 gap-3">
@@ -355,7 +354,7 @@ const Reports: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Faculty Filters */}
-            <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+            <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <h4 className="font-semibold text-sm">Filter Options:</h4>
               
               <div className="grid grid-cols-1 gap-3">
@@ -458,11 +457,11 @@ const Reports: React.FC = () => {
               reportData.data?.students && reportData.data.students.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                       <p className="text-sm text-blue-600">Total Students</p>
                       <p className="text-2xl font-bold text-blue-900">{reportData.data?.statistics?.total || 0}</p>
                     </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                       <p className="text-sm text-green-600">By Course</p>
                       <p className="text-sm text-green-900">
                         {reportData.data?.statistics?.byCourse && Array.isArray(reportData.data.statistics.byCourse) 
@@ -470,14 +469,14 @@ const Reports: React.FC = () => {
                           : 0} courses
                       </p>
                       {reportData.data?.statistics?.byCourse && reportData.data.statistics.byCourse.length > 0 && (
-                        <div className="text-xs text-gray-600 mt-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                           {reportData.data.statistics.byCourse.slice(0, 2).map((item: any) => (
                             <div key={item.course}>{item.course}: {item.count}</div>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="p-3 bg-purple-50 rounded-lg">
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
                       <p className="text-sm text-purple-600">By Department</p>
                       <p className="text-sm text-purple-900">
                         {reportData.data?.statistics?.byDepartment && Array.isArray(reportData.data.statistics.byDepartment)
@@ -492,7 +491,7 @@ const Reports: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="p-3 bg-orange-50 rounded-lg">
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
                       <p className="text-sm text-orange-600">Academic Years</p>
                       <p className="text-sm text-orange-900">
                         {reportData.data?.statistics?.byAcademicYear && Array.isArray(reportData.data.statistics.byAcademicYear)
@@ -500,7 +499,7 @@ const Reports: React.FC = () => {
                           : 0} years
                       </p>
                       {reportData.data?.statistics?.byAcademicYear && reportData.data.statistics.byAcademicYear.length > 0 && (
-                        <div className="text-xs text-gray-600 mt-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                           {reportData.data.statistics.byAcademicYear.slice(0, 2).map((item: any) => (
                             <div key={item.year}>{item.year}: {item.count}</div>
                           ))}
@@ -545,15 +544,15 @@ const Reports: React.FC = () => {
               reportData.data?.faculty && reportData.data.faculty.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                       <p className="text-sm text-blue-600">Total Faculty</p>
                       <p className="text-2xl font-bold text-blue-900">{reportData.data?.statistics?.total || 0}</p>
                     </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                       <p className="text-sm text-green-600">Avg Salary</p>
                       <p className="text-sm text-green-900">${reportData.data?.statistics?.averageSalary?.toFixed(0) || 'N/A'}</p>
                     </div>
-                    <div className="p-3 bg-purple-50 rounded-lg">
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
                       <p className="text-sm text-purple-600">Departments</p>
                       <p className="text-sm text-purple-900">
                         {reportData.data?.statistics?.byDepartment && Array.isArray(reportData.data.statistics.byDepartment)
@@ -561,14 +560,14 @@ const Reports: React.FC = () => {
                           : 0} departments
                       </p>
                       {reportData.data?.statistics?.byDepartment && reportData.data.statistics.byDepartment.length > 0 && (
-                        <div className="text-xs text-gray-600 mt-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                           {reportData.data.statistics.byDepartment.slice(0, 2).map((item: any) => (
                             <div key={item.department}>{item.department}: {item.count}</div>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="p-3 bg-orange-50 rounded-lg">
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
                       <p className="text-sm text-orange-600">Employment Types</p>
                       <p className="text-sm text-orange-900">
                         {reportData.data?.statistics?.byEmploymentType && Array.isArray(reportData.data.statistics.byEmploymentType)
@@ -576,7 +575,7 @@ const Reports: React.FC = () => {
                           : 0} types
                       </p>
                       {reportData.data?.statistics?.byEmploymentType && reportData.data.statistics.byEmploymentType.length > 0 && (
-                        <div className="text-xs text-gray-600 mt-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                           {reportData.data.statistics.byEmploymentType.slice(0, 2).map((item: any) => (
                             <div key={item.type}>{item.type}: {item.count}</div>
                           ))}
