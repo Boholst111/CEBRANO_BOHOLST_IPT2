@@ -64,9 +64,26 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
+        $user = $request->user();
+        $data = $user;
+
+        // Load role-specific data
+        if ($user->role === 'student') {
+            $student = $user->student()->with(['course.department', 'academicYear'])->first();
+            if ($student) {
+                $data = array_merge($user->toArray(), $student->toArray());
+            }
+        } elseif ($user->role === 'faculty') {
+            $faculty = $user->faculty()->with('department')->first();
+            if ($faculty) {
+                $data = array_merge($user->toArray(), $faculty->toArray());
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $request->user()
+            'user' => $user,
+            'data' => $data
         ]);
     }
 
@@ -79,6 +96,8 @@ class AuthController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|unique:users,email,' . $request->user()->id,
             'password' => 'sometimes|string|min:6',
+            'phone' => 'sometimes|string|max:20',
+            'address' => 'sometimes|string|max:500',
         ]);
 
         $user = $request->user();
@@ -95,12 +114,35 @@ class AuthController extends Controller
             $user->password = Hash::make($validated['password']);
         }
 
+        if (isset($validated['phone'])) {
+            $user->phone = $validated['phone'];
+        }
+
+        if (isset($validated['address'])) {
+            $user->address = $validated['address'];
+        }
+
         $user->save();
+
+        // Load role-specific data for response
+        $data = $user;
+        if ($user->role === 'student') {
+            $student = $user->student()->with(['course.department', 'academicYear'])->first();
+            if ($student) {
+                $data = array_merge($user->toArray(), $student->toArray());
+            }
+        } elseif ($user->role === 'faculty') {
+            $faculty = $user->faculty()->with('department')->first();
+            if ($faculty) {
+                $data = array_merge($user->toArray(), $faculty->toArray());
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'data' => $user
+            'user' => $user,
+            'data' => $data
         ]);
     }
 

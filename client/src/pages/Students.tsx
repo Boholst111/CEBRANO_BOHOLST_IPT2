@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,10 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Plus, Search, Edit, Archive, Filter } from 'lucide-react';
 import { getAxiosClient } from '../lib/apiConfig';
+import { SkeletonTable } from '../components/Loaders';
 
 const Students: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
@@ -89,28 +89,25 @@ const Students: React.FC = () => {
       // Handle the correct response format from backend
       if (response.data.students && Array.isArray(response.data.students)) {
         setStudents(response.data.students);
-        setFilteredStudents(response.data.students);
       } else {
         setStudents([]);
-        setFilteredStudents([]);
       }
     } catch (error: any) {
       console.error('Error fetching students:', error);
       setError(error.response?.data?.message || 'Failed to fetch student data');
       setStudents([]);
-      setFilteredStudents([]);
     } finally {
       setLoading(false);
     }
   };
 
   // Filter courses based on selected department
-  const filterCoursesByDepartment = (departmentId: string) => {
+  const filterCoursesByDepartment = useCallback((departmentId: string) => {
     const filtered = courses.filter((course: any) => course.department_id === parseInt(departmentId));
     setAvailableCourses(filtered);
     // Reset course selection when department changes
     setFormData(prev => ({ ...prev, course_id: filtered.length > 0 ? filtered[0].id.toString() : '' }));
-  };
+  }, [courses]);
 
   useEffect(() => {
     fetchDepartments();
@@ -128,7 +125,7 @@ const Students: React.FC = () => {
         setFormData(prev => ({ ...prev, course_id: courses[0].id.toString() }));
       }
     }
-  }, [courses]);
+  }, [courses, formData.course_id]);
 
   // Ensure availableCourses is set when add form opens
   useEffect(() => {
@@ -141,7 +138,7 @@ const Students: React.FC = () => {
         setAvailableCourses(courses);
       }
     }
-  }, [showAddForm]);
+  }, [showAddForm, formData.department_id, courses, filterCoursesByDepartment]);
 
   // Set initial available courses when courses and departments are loaded
   useEffect(() => {
@@ -285,8 +282,8 @@ const Students: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
-          <p className="text-gray-600">Manage student records and academic information</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Student Management</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage student records and academic information</p>
         </div>
         <Button onClick={() => {
           // Reset form to show all courses
@@ -332,7 +329,7 @@ const Students: React.FC = () => {
             {/* Filters */}
             <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Filter by Department
                 </label>
                 <select
@@ -350,7 +347,7 @@ const Students: React.FC = () => {
               </div>
               
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Filter by Course
                 </label>
                 <select
@@ -398,9 +395,7 @@ const Students: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-            </div>
+            <SkeletonTable rows={8} />
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-red-600">{error}</p>
@@ -410,8 +405,8 @@ const Students: React.FC = () => {
             </div>
           ) : students.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No students found.</p>
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-gray-500 dark:text-gray-400">No students found.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
                 The student data will appear here once the Laravel backend is properly connected.
               </p>
             </div>
@@ -496,7 +491,7 @@ const Students: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="font-semibold text-green-600">✅ Implemented:</h4>
-              <ul className="text-sm text-gray-600 mt-2 space-y-1">
+              <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                 <li>• Complete Laravel API with CRUD operations</li>
                 <li>• Course and department filtering</li>
                 <li>• Role-based access control (Admin only)</li>
@@ -506,7 +501,7 @@ const Students: React.FC = () => {
             </div>
             <div>
               <h4 className="font-semibold text-blue-600">🔄 Ready to Connect:</h4>
-              <ul className="text-sm text-gray-600 mt-2 space-y-1">
+              <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                 <li>• Add/Edit student forms</li>
                 <li>• Course and department filtering</li>
                 <li>• Academic year selection</li>
@@ -689,7 +684,7 @@ const Students: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Department
                 </label>
                 <select
@@ -709,7 +704,7 @@ const Students: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Course
                 </label>
                 <select

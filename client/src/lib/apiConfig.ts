@@ -154,7 +154,7 @@ export function getConfig(): ApiConfig | null {
   return config;
 }
 
-export default {
+const apiExport = {
   loadApiConfig,
   getAxiosClient,
   getRoute,
@@ -162,3 +162,5 @@ export default {
   isConfigLoaded,
   getConfig,
 };
+
+export default apiExport;

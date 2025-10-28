@@ -31,8 +31,8 @@ const Profile: React.FC = () => {
       if (response.data.success) {
         setProfileData(response.data.data);
         setFormData({
-          name: response.data.user?.name || '',
-          email: response.data.user?.email || '',
+          name: response.data.data?.name || '',
+          email: response.data.data?.email || '',
           password: '',
           phone: response.data.data?.phone || '',
           address: response.data.data?.address || ''
@@ -57,9 +57,51 @@ const Profile: React.FC = () => {
         setLoading(false);
         return;
       }
+
+      // Validate password if provided
+      if (formData.password && formData.password.length < 8) {
+        alert('Password must be at least 8 characters long');
+        setLoading(false);
+        return;
+      }
+
+      // Validate phone length
+      if (formData.phone && formData.phone.length > 20) {
+        alert('Phone number must be 20 characters or less');
+        setLoading(false);
+        return;
+      }
+
+      // Validate address length
+      if (formData.address && formData.address.length > 500) {
+        alert('Address must be 500 characters or less');
+        setLoading(false);
+        return;
+      }
       
       const api = getAxiosClient();
-      const response = await api.put('/profile', formData);
+      
+      // Build request payload - only send provided data
+      const payload: any = {
+        name: formData.name,
+        email: formData.email,
+      };
+
+      // Only include password if provided and not empty
+      if (formData.password && formData.password.trim()) {
+        payload.password = formData.password;
+      }
+
+      // Include phone and address if provided
+      if (formData.phone && formData.phone.trim()) {
+        payload.phone = formData.phone;
+      }
+
+      if (formData.address && formData.address.trim()) {
+        payload.address = formData.address;
+      }
+
+      const response = await api.put('/profile', payload);
       
       if (response.data.success) {
         // Update the displayed data immediately with the response
@@ -77,19 +119,40 @@ const Profile: React.FC = () => {
             phone: response.data.data.phone || formData.phone,
             address: response.data.data.address || formData.address
           });
+          
+          // Update formData with the response data
+          setFormData(prev => ({
+            ...prev,
+            phone: response.data.data.phone || formData.phone,
+            address: response.data.data.address || formData.address
+          }));
         }
         
         alert('Profile updated successfully!');
         setShowEditForm(false);
         
-        // Also refresh profile data from server
-        await fetchProfile();
+        // Clear password field after successful update
+        setFormData(prev => ({ ...prev, password: '' }));
       } else {
         alert(response.data.message || 'Failed to update profile');
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to update profile');
+      
+      // Handle validation errors
+      if (error.response?.status === 422) {
+        const errors = error.response?.data?.errors;
+        if (errors) {
+          const errorMessages = Object.entries(errors)
+            .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          alert('Validation Error:\n' + errorMessages);
+        } else {
+          alert('Validation failed. Please check your input.');
+        }
+      } else {
+        alert(error.response?.data?.message || error.response?.data?.error || 'Failed to update profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -133,8 +196,8 @@ const Profile: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           View and update your profile information.
         </p>
       </div>
@@ -156,23 +219,23 @@ const Profile: React.FC = () => {
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Full Name
                   </label>
-                  <p className="text-lg font-semibold text-gray-900">
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
                     {user?.name || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email Address
                   </label>
-                  <p className="text-lg text-gray-900">
+                  <p className="text-lg text-gray-900 dark:text-white">
                     {user?.email || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Role
                   </label>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -186,10 +249,10 @@ const Profile: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Member Since
                   </label>
-                  <p className="text-lg text-gray-900">
+                  <p className="text-lg text-gray-900 dark:text-white">
                     {(user as any)?.created_at 
                       ? new Date((user as any).created_at).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -208,21 +271,21 @@ const Profile: React.FC = () => {
 
               {/* Contact Info */}
               <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Contact Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Phone Number
                     </label>
-                    <p className="text-lg text-gray-900">
+                    <p className="text-lg text-gray-900 dark:text-white">
                       {profileData?.phone || 'Not provided'}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Address
                     </label>
-                    <p className="text-lg text-gray-900">
+                    <p className="text-lg text-gray-900 dark:text-white">
                       {profileData?.address || 'Not provided'}
                     </p>
                   </div>
@@ -235,34 +298,34 @@ const Profile: React.FC = () => {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Student Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Student ID
                       </label>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
                         {profileData.student_id || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Course
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.course?.name || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Department
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.department?.name || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Academic Year
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.academic_year || 'N/A'}
                       </p>
                     </div>
@@ -275,31 +338,31 @@ const Profile: React.FC = () => {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Faculty Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Employee ID
                       </label>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
                         {profileData.employee_id || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Position
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.position || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Department
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.department?.name || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Employment Type
                       </label>
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -316,10 +379,10 @@ const Profile: React.FC = () => {
                   
                   {profileData.qualifications && (
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Qualifications
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.qualifications}
                       </p>
                     </div>
@@ -327,10 +390,10 @@ const Profile: React.FC = () => {
                   
                   {profileData.specializations && (
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Specializations
                       </label>
-                      <p className="text-lg text-gray-900">
+                      <p className="text-lg text-gray-900 dark:text-white">
                         {profileData.specializations}
                       </p>
                     </div>
@@ -340,7 +403,22 @@ const Profile: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="border-t pt-6 flex gap-4">
-                <Button onClick={() => setShowEditForm(true)}>
+                <Button 
+                  onClick={() => {
+                    // Ensure form data is populated with current profile data
+                    if (profileData) {
+                      setFormData({
+                        name: profileData.user?.name || user?.name || '',
+                        email: profileData.user?.email || user?.email || '',
+                        password: '',
+                        phone: profileData.phone || '',
+                        address: profileData.address || ''
+                      });
+                    }
+                    setShowEditForm(true);
+                  }}
+                  disabled={!profileData || loading}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
@@ -361,20 +439,20 @@ const Profile: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Account Status</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Account Status</span>
                 <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                   Active
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Email Verified</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Email Verified</span>
                 <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                   Verified
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Last Login</span>
-                <span className="text-sm text-gray-900">Today</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Last Login</span>
+                <span className="text-sm text-gray-900 dark:text-white">Today</span>
               </div>
             </div>
           </CardContent>

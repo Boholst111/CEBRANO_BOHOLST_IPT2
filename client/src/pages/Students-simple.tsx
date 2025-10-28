@@ -53,8 +53,8 @@ const Students: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
-          <p className="text-gray-600">Manage student records and academic information</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Student Management</h1>
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Manage student records and academic information</p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -103,7 +103,7 @@ const Students: React.FC = () => {
             </div>
           ) : students.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No students found.</p>
+              <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">No students found.</p>
               <p className="text-sm text-gray-400 mt-2">
                 The student data will appear here once the Laravel backend is properly connected.
               </p>

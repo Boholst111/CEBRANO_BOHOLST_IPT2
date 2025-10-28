@@ -6,10 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Plus, Search, Edit, Archive, Filter } from 'lucide-react';
 import { getAxiosClient } from '../lib/apiConfig';
+import { SkeletonTable } from '../components/Loaders';
 
 const Faculty: React.FC = () => {
   const [faculty, setFaculty] = useState<any[]>([]);
-  const [filteredFaculty, setFilteredFaculty] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
@@ -30,7 +30,6 @@ const Faculty: React.FC = () => {
     salary: '',
     qualifications: '',
     specializations: '',
-    office_location: '',
     phone: '',
     address: ''
   });
@@ -63,16 +62,13 @@ const Faculty: React.FC = () => {
       // Handle the correct response format from backend
       if (response.data.faculty && Array.isArray(response.data.faculty)) {
         setFaculty(response.data.faculty);
-        setFilteredFaculty(response.data.faculty);
       } else {
         setFaculty([]);
-        setFilteredFaculty([]);
       }
     } catch (error: any) {
       console.error('Error fetching faculty:', error);
       setError(error.response?.data?.message || 'Failed to fetch faculty data');
       setFaculty([]);
-      setFilteredFaculty([]);
     } finally {
       setLoading(false);
     }
@@ -108,7 +104,6 @@ const Faculty: React.FC = () => {
         salary: '',
         qualifications: '',
         specializations: '',
-        office_location: '',
         phone: '',
         address: ''
       });
@@ -149,7 +144,6 @@ const Faculty: React.FC = () => {
       salary: facultyMember.salary || '',
       qualifications: facultyMember.qualifications || '',
       specializations: facultyMember.specializations || '',
-      office_location: facultyMember.office_location || '',
       phone: facultyMember.phone || '',
       address: facultyMember.address || ''
     });
@@ -179,7 +173,6 @@ const Faculty: React.FC = () => {
         salary: '',
         qualifications: '',
         specializations: '',
-        office_location: '',
         phone: '',
         address: ''
       });
@@ -221,8 +214,8 @@ const Faculty: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1>
-          <p className="text-gray-600">Manage faculty members and their information</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Faculty Management</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage faculty members and their information</p>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -252,7 +245,7 @@ const Faculty: React.FC = () => {
             {/* Filters */}
             <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Filter by Department
                 </label>
                 <select
@@ -299,9 +292,7 @@ const Faculty: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-            </div>
+            <SkeletonTable rows={6} />
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-red-600">{error}</p>
@@ -311,8 +302,8 @@ const Faculty: React.FC = () => {
             </div>
           ) : faculty.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No faculty members found.</p>
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-gray-500 dark:text-gray-400">No faculty members found.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
                 The faculty data will appear here once the Laravel backend is properly connected.
               </p>
             </div>
@@ -499,9 +490,9 @@ const Faculty: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
-                name="office_location"
-                placeholder="Office Location"
-                value={formData.office_location}
+                name="phone"
+                placeholder="Phone Number"
+                value={formData.phone}
                 onChange={handleInputChange}
               />
               <Input
@@ -582,7 +573,7 @@ const Faculty: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Department
                 </label>
                 <select
@@ -620,7 +611,7 @@ const Faculty: React.FC = () => {
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Employment Type
                 </label>
                 <select
@@ -643,12 +634,6 @@ const Faculty: React.FC = () => {
                 type="number"
                 placeholder="Salary (optional)"
                 value={formData.salary}
-                onChange={handleInputChange}
-              />
-              <Input
-                name="office_location"
-                placeholder="Office Location"
-                value={formData.office_location}
                 onChange={handleInputChange}
               />
             </div>
