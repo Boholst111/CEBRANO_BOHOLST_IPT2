@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { FileText, Download, BarChart3, Filter, Eye } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 const Reports: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -36,6 +36,7 @@ const Reports: React.FC = () => {
   // Fetch departments dynamically
   const fetchDepartments = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/departments');
       // Handle the response format: { success: true, data: [...] }
       const depts = response.data?.data || [];
@@ -49,6 +50,7 @@ const Reports: React.FC = () => {
   // Fetch courses dynamically
   const fetchCourses = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/courses');
       // Handle the response format: { success: true, data: [...] }
       const crses = response.data?.data || [];
@@ -62,6 +64,7 @@ const Reports: React.FC = () => {
   // Fetch academic years dynamically
   const fetchAcademicYears = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/academic-years');
       
       // Handle the response format: { success: true, data: [...] }
@@ -98,6 +101,7 @@ const Reports: React.FC = () => {
         const url = `${exportPath}?${params.toString()}`;
         
         try {
+          const api = getAxiosClient();
           const response = await api.get(url, {
             responseType: 'blob',
           });
@@ -122,6 +126,7 @@ const Reports: React.FC = () => {
         }
       } else {
         // For preview
+        const api = getAxiosClient();
         const response = await api.get(`/reports/students?${params.toString()}`);
         
         // Handle response - backend returns { success: true, data: { students: [...], statistics: {...} } }
@@ -171,6 +176,7 @@ const Reports: React.FC = () => {
         const url = `${exportPath}?${params.toString()}`;
         
         try {
+          const api = getAxiosClient();
           const response = await api.get(url, {
             responseType: 'blob',
           });
@@ -195,6 +201,7 @@ const Reports: React.FC = () => {
         }
       } else {
         // For preview
+        const api = getAxiosClient();
         const response = await api.get(`/reports/faculty?${params.toString()}`);
         
         // Handle response - backend returns { success: true, data: { faculty: [...], statistics: {...} } }

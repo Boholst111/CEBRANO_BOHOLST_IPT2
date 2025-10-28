@@ -19,18 +19,24 @@ use Symfony\Component\Stopwatch\Stopwatch;
  */
 class TraceableArgumentResolver implements ArgumentResolverInterface
 {
-    public function __construct(
-        private ArgumentResolverInterface $resolver,
-        private Stopwatch $stopwatch,
-    ) {
+    private $resolver;
+    private $stopwatch;
+
+    public function __construct(ArgumentResolverInterface $resolver, Stopwatch $stopwatch)
+    {
+        $this->resolver = $resolver;
+        $this->stopwatch = $stopwatch;
     }
 
-    public function getArguments(Request $request, callable $controller, ?\ReflectionFunctionAbstract $reflector = null): array
+    /**
+     * {@inheritdoc}
+     */
+    public function getArguments(Request $request, callable $controller)
     {
         $e = $this->stopwatch->start('controller.get_arguments');
 
         try {
-            return $this->resolver->getArguments($request, $controller, $reflector);
+            return $this->resolver->getArguments($request, $controller);
         } finally {
             $e->stop();
         }

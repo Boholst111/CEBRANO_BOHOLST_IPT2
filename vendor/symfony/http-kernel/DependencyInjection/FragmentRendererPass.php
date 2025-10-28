@@ -25,23 +25,36 @@ use Symfony\Component\HttpKernel\Fragment\FragmentRendererInterface;
  */
 class FragmentRendererPass implements CompilerPassInterface
 {
-    public function process(ContainerBuilder $container): void
+    private $handlerService;
+    private $rendererTag;
+
+    public function __construct(string $handlerService = 'fragment.handler', string $rendererTag = 'kernel.fragment_renderer')
     {
-        if (!$container->hasDefinition('fragment.handler')) {
+        if (0 < \func_num_args()) {
+            trigger_deprecation('symfony/http-kernel', '5.3', 'Configuring "%s" is deprecated.', __CLASS__);
+        }
+
+        $this->handlerService = $handlerService;
+        $this->rendererTag = $rendererTag;
+    }
+
+    public function process(ContainerBuilder $container)
+    {
+        if (!$container->hasDefinition($this->handlerService)) {
             return;
         }
 
-        $definition = $container->getDefinition('fragment.handler');
+        $definition = $container->getDefinition($this->handlerService);
         $renderers = [];
-        foreach ($container->findTaggedServiceIds('kernel.fragment_renderer', true) as $id => $tags) {
+        foreach ($container->findTaggedServiceIds($this->rendererTag, true) as $id => $tags) {
             $def = $container->getDefinition($id);
             $class = $container->getParameterBag()->resolveValue($def->getClass());
 
             if (!$r = $container->getReflectionClass($class)) {
-                throw new InvalidArgumentException(\sprintf('Class "%s" used for service "%s" cannot be found.', $class, $id));
+                throw new InvalidArgumentException(sprintf('Class "%s" used for service "%s" cannot be found.', $class, $id));
             }
             if (!$r->isSubclassOf(FragmentRendererInterface::class)) {
-                throw new InvalidArgumentException(\sprintf('Service "%s" must implement interface "%s".', $id, FragmentRendererInterface::class));
+                throw new InvalidArgumentException(sprintf('Service "%s" must implement interface "%s".', $id, FragmentRendererInterface::class));
             }
 
             foreach ($tags as $tag) {

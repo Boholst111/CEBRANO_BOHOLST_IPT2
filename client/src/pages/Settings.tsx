@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Settings as SettingsIcon, Building, BookOpen, Calendar, Plus, Edit, Archive, Trash2 } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('departments');
@@ -57,6 +57,7 @@ const Settings: React.FC = () => {
   // Fetch functions
   const fetchDepartments = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/departments');
       if (response.data.success) {
         setDepartments(response.data.data || []);
@@ -68,6 +69,7 @@ const Settings: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/courses');
       if (response.data.success && response.data.data) {
         setCourses(response.data.data);
@@ -82,6 +84,7 @@ const Settings: React.FC = () => {
 
   const fetchAcademicYears = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/academic-years');
       if (response.data.success) {
         setAcademicYears(response.data.data || []);
@@ -96,6 +99,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      const api = getAxiosClient();
       if (editingDepartment) {
         await api.put(`/departments/${editingDepartment.id}`, departmentForm);
         alert('Department updated successfully!');
@@ -127,6 +131,7 @@ const Settings: React.FC = () => {
   const handleArchiveDepartment = async (id: number, name: string) => {
     if (!window.confirm(`Are you sure you want to archive ${name}?`)) return;
     try {
+      const api = getAxiosClient();
       await api.delete(`/departments/${id}`);
       alert('Department archived successfully!');
       fetchDepartments();
@@ -140,6 +145,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      const api = getAxiosClient();
       
       // Prepare form data
       const submitData = {
@@ -181,6 +187,7 @@ const Settings: React.FC = () => {
   const handleArchiveCourse = async (id: number, name: string) => {
     if (!window.confirm(`Are you sure you want to archive ${name}?`)) return;
     try {
+      const api = getAxiosClient();
       await api.delete(`/courses/${id}`);
       alert('Course archived successfully!');
       fetchCourses();
@@ -194,6 +201,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      const api = getAxiosClient();
       if (editingAcademicYear) {
         await api.put(`/academic-years/${editingAcademicYear.id}`, academicYearForm);
         alert('Academic year updated successfully!');
@@ -224,13 +232,14 @@ const Settings: React.FC = () => {
   };
 
   const handleArchiveAcademicYear = async (id: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to archive ${name}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
     try {
-      await api.delete(`/academic-years/${id}/archive`);
-      alert('Academic year archived successfully!');
+      const api = getAxiosClient();
+      await api.delete(`/academic-years/${id}`);
+      alert('Academic year deleted successfully!');
       fetchAcademicYears();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to archive academic year');
+      alert(error.response?.data?.message || 'Failed to delete academic year');
     }
   };
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Plus, Search, Edit, Archive, Filter } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 const Faculty: React.FC = () => {
   const [faculty, setFaculty] = useState<any[]>([]);
@@ -37,6 +37,7 @@ const Faculty: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/departments');
       if (response.data.success && Array.isArray(response.data.data)) {
         setDepartments(response.data.data);
@@ -56,6 +57,7 @@ const Faculty: React.FC = () => {
       if (search) params.append('search', search);
       if (departmentFilter) params.append('department_id', departmentFilter);
       
+      const api = getAxiosClient();
       const response = await api.get(`/faculty?${params.toString()}`);
       
       // Handle the correct response format from backend
@@ -91,6 +93,7 @@ const Faculty: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.post('/faculty', formData);
       setShowAddForm(false);
       setFormData({
@@ -160,6 +163,7 @@ const Faculty: React.FC = () => {
 
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.put(`/faculty/${editingFaculty.id}`, formData);
       setShowEditForm(false);
       setEditingFaculty(null);
@@ -197,6 +201,7 @@ const Faculty: React.FC = () => {
 
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.delete(`/faculty/${facultyId}`);
       fetchFaculty(searchTerm, filterDepartment);
       alert('Faculty archived successfully!');

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Plus, Search, Edit, Archive, Filter } from 'lucide-react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 const Students: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -38,6 +38,7 @@ const Students: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/departments');
       if (response.data.success && Array.isArray(response.data.data)) {
         setDepartments(response.data.data);
@@ -49,6 +50,7 @@ const Students: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/courses');
       if (response.data.success && Array.isArray(response.data.data)) {
         setCourses(response.data.data);
@@ -60,6 +62,7 @@ const Students: React.FC = () => {
 
   const fetchAcademicYears = async () => {
     try {
+      const api = getAxiosClient();
       const response = await api.get('/academic-years');
       if (response.data.success && Array.isArray(response.data.data)) {
         setAcademicYears(response.data.data);
@@ -80,6 +83,7 @@ const Students: React.FC = () => {
       if (departmentFilter) params.append('department_id', departmentFilter);
       if (courseFilter) params.append('course_id', courseFilter);
       
+      const api = getAxiosClient();
       const response = await api.get(`/students?${params.toString()}`);
       
       // Handle the correct response format from backend
@@ -115,12 +119,36 @@ const Students: React.FC = () => {
     fetchStudents();
   }, []);
 
+  // Initialize availableCourses with all courses when courses are loaded
+  useEffect(() => {
+    if (courses.length > 0) {
+      setAvailableCourses(courses);
+      // Set default course if not already set
+      if (!formData.course_id || formData.course_id === '') {
+        setFormData(prev => ({ ...prev, course_id: courses[0].id.toString() }));
+      }
+    }
+  }, [courses]);
+
+  // Ensure availableCourses is set when add form opens
+  useEffect(() => {
+    if (showAddForm && courses.length > 0) {
+      // If department is selected, show only courses from that department
+      if (formData.department_id) {
+        filterCoursesByDepartment(formData.department_id);
+      } else {
+        // If no department selected, show all courses
+        setAvailableCourses(courses);
+      }
+    }
+  }, [showAddForm]);
+
   // Set initial available courses when courses and departments are loaded
   useEffect(() => {
-    if (courses.length > 0 && departments.length > 0) {
-      filterCoursesByDepartment(formData.department_id);
+    if (courses.length > 0) {
+      setAvailableCourses(courses);
     }
-  }, [courses, departments]);
+  }, [courses]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +159,7 @@ const Students: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.post('/students', formData);
       setShowAddForm(false);
       setFormData({
@@ -138,13 +167,14 @@ const Students: React.FC = () => {
         email: '',
         password: '',
         student_id: '',
-        course_id: '1',
-        department_id: '1',
+        course_id: '',
+        department_id: '',
         academic_year: '',
         enrollment_date: '',
         phone: '',
         address: ''
       });
+      setAvailableCourses(courses);
       fetchStudents(searchTerm);
       alert('Student added successfully!');
     } catch (error: any) {
@@ -165,7 +195,13 @@ const Students: React.FC = () => {
     
     // Filter courses when department changes
     if (name === 'department_id') {
-      filterCoursesByDepartment(value);
+      if (value) {
+        filterCoursesByDepartment(value);
+      } else {
+        // Show all courses when no department is selected
+        setAvailableCourses(courses);
+        setFormData(prev => ({ ...prev, course_id: courses.length > 0 ? courses[0].id.toString() : '' }));
+      }
     }
   };
 
@@ -199,6 +235,7 @@ const Students: React.FC = () => {
 
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.put(`/students/${editingStudent.id}`, formData);
       setShowEditForm(false);
       setEditingStudent(null);
@@ -232,6 +269,7 @@ const Students: React.FC = () => {
 
     try {
       setLoading(true);
+      const api = getAxiosClient();
       await api.delete(`/students/${studentId}`);
       fetchStudents(searchTerm, filterDepartment, filterCourse);
       alert('Student archived successfully!');
@@ -250,7 +288,23 @@ const Students: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
           <p className="text-gray-600">Manage student records and academic information</p>
         </div>
-        <Button onClick={() => setShowAddForm(true)}>
+        <Button onClick={() => {
+          // Reset form to show all courses
+          setFormData({
+            name: '',
+            email: '',
+            password: '',
+            student_id: '',
+            course_id: '',
+            department_id: '',
+            academic_year: '',
+            enrollment_date: '',
+            phone: '',
+            address: ''
+          });
+          setAvailableCourses(courses);
+          setShowAddForm(true);
+        }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Student
         </Button>

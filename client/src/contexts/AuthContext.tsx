@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import api from '../lib/api';
+import { getAxiosClient } from '../lib/apiConfig';
 
 interface User {
   id: number;
@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      const api = getAxiosClient();
       const response = await api.post('/auth/login', { email, password });
       const { user: userData, token } = response.data;
       
