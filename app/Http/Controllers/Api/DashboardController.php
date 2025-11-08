@@ -18,13 +18,13 @@ class DashboardController extends Controller
     public function index()
     {
         $stats = [
-            'total_students' => Student::count(),
-            'total_faculty' => Faculty::count(),
-            'total_courses' => Course::count(),
-            'total_departments' => Department::count(),
+            'total_students' => Student::where('archived', false)->count(),
+            'total_faculty' => Faculty::where('archived', false)->count(),
+            'total_courses' => Course::where('archived', false)->count(),
+            'total_departments' => Department::where('archived', false)->count(),
             'current_academic_year' => AcademicYear::where('is_current', true)->first(),
-            'recent_students' => Student::with('user')->latest()->take(5)->get(),
-            'recent_faculty' => Faculty::with('user')->latest()->take(5)->get(),
+            'recent_students' => Student::where('archived', false)->with('user')->latest()->take(5)->get(),
+            'recent_faculty' => Faculty::where('archived', false)->with('user')->latest()->take(5)->get(),
         ];
 
         return response()->json([
